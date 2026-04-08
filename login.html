@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Configurações · BRUDE{% endblock %}
+{% block topbar_title %}Configurações{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+  <!-- Metas -->
+  <div class="card">
+    <div class="card-title">Metas mensais por categoria</div>
+    <form method="POST">
+      <input type="hidden" name="acao" value="metas">
+      {% for cat in categorias %}
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="width:10px;height:10px;border-radius:50%;background:{{ cat.cor }};flex-shrink:0;display:inline-block"></span>
+        <label style="flex:1;font-size:13px;color:var(--text);font-weight:400;letter-spacing:0;text-transform:none">{{ cat.nome }}</label>
+        <input type="number" name="meta_{{ cat.nome }}" value="{{ cat.meta_mensal|int }}"
+               style="width:100px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--text);font-size:13px;outline:none;text-align:right">
+      </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px">
+        💾 Salvar metas
+      </button>
+    </form>
+  </div>
+
+  <div>
+    <!-- Senha -->
+    <div class="card">
+      <div class="card-title">Alterar senha</div>
+      <form method="POST">
+        <input type="hidden" name="acao" value="senha">
+        <div class="form-group">
+          <label>Nova senha (mínimo 8 caracteres)</label>
+          <input type="password" name="nova_senha" placeholder="••••••••" minlength="8">
+        </div>
+        <div class="form-group">
+          <label>Confirmar senha</label>
+          <input type="password" name="confirmar" placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">
+          🔑 Alterar senha
+        </button>
+      </form>
+    </div>
+
+    <!-- Membros -->
+    <div class="card">
+      <div class="card-title">Membros da família</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Cartões</th><th style="text-align:right">Salário</th></tr></thead>
+          <tbody>
+            {% for m in membros %}
+            <tr>
+              <td style="font-weight:500">{{ m.nome }}</td>
+              <td style="font-size:12px;color:var(--muted)">{{ m.cartoes }}</td>
+              <td style="text-align:right;color:var(--green);font-weight:600">{{ m.salario|brl }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="card">
+      <div class="card-title">Sobre o sistema</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.8">
+        <div><strong style="color:var(--text)">BRUDE Finanças MVP</strong></div>
+        <div>Banco: SQLite persistente</div>
+        <div>Autenticação: senha com SHA-256</div>
+        <div>Parser: pdfplumber + rapidfuzz</div>
+        <div>Sessão: 8 horas</div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

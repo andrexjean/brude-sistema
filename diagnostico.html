@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Transações · BRUDE{% endblock %}
+{% block topbar_title %}Transações{% endblock %}
+{% block topbar_extra %}
+<select onchange="filtrar('mes',this.value)">
+  {% for m in meses_disp %}<option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>{% endfor %}
+  {% if not meses_disp %}<option value="{{ mes }}">{{ mes }}</option>{% endif %}
+</select>
+<select onchange="filtrar('membro',this.value)">
+  <option value="">Todos</option>
+  {% for m in membros_disp %}<option value="{{ m }}" {% if m==membro %}selected{% endif %}>{{ m }}</option>{% endfor %}
+</select>
+<select onchange="filtrar('categoria',this.value)">
+  <option value="">Todas categorias</option>
+  {% for c in cats_disp %}<option value="{{ c }}" {% if c==categoria %}selected{% endif %}>{{ c }}</option>{% endfor %}
+</select>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="padding:0">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Estabelecimento</th>
+          <th>Titular</th>
+          <th>Cartão</th>
+          <th>Categoria</th>
+          <th>Parcela</th>
+          <th style="text-align:right">Valor</th>
+          <th>Conf.</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transacoes %}
+        <tr>
+          <td style="color:var(--muted);font-size:12px">{{ t.data }}</td>
+          <td>
+            <div style="font-weight:500;font-size:13px">{{ t.descricao_norm or t.descricao_original }}</div>
+            {% if t.descricao_norm and t.descricao_norm != t.descricao_original %}
+              <div style="font-size:10px;color:var(--muted2)">{{ t.descricao_original }}</div>
+            {% endif %}
+          </td>
+          <td>
+            <span style="color:{% if t.membro=='André' %}#60a5fa{% else %}#f9a8d4{% endif %};font-size:12px;font-weight:600">
+              {{ t.membro }}
+            </span>
+          </td>
+          <td style="font-size:12px;color:var(--muted)">{{ t.cartao }}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="width:8px;height:8px;border-radius:50%;background:{{ t.cor }};flex-shrink:0;display:inline-block"></span>
+              <select class="cat-select" data-id="{{ t.id }}"
+                style="background:transparent;border:none;color:var(--text);font-size:12px;cursor:pointer;outline:none;padding:2px">
+                {% for c in cats_disp %}
+                  <option value="{{ c }}" {% if c==t.categoria %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </td>
+          <td style="font-size:12px;color:var(--muted)">
+            {% if t.parcela_atual %}{{ t.parcela_atual }}/{{ t.parcela_total }}{% else %}—{% endif %}
+          </td>
+          <td class="td-val td-red" style="text-align:right">{{ t.valor|brl }}</td>
+          <td>
+            <span style="font-size:11px;color:{% if t.confianca >= 0.8 %}var(--green){% elif t.confianca >= 0.5 %}var(--amber){% else %}var(--red){% endif %}">
+              {{ "%.0f"|format(t.confianca*100) }}%
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:32px">
+          Nenhuma transação para os filtros selecionados.
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Paginação -->
+{% if total_pages > 1 %}
+<div style="display:flex;gap:8px;justify-content:center;margin-top:16px">
+  {% for p in range(1, total_pages+1) %}
+    <a href="?mes={{ mes }}&membro={{ membro }}&categoria={{ categoria }}&page={{ p }}"
+       style="padding:6px 12px;border-radius:6px;font-size:12px;text-decoration:none;
+              background:{% if p==page %}var(--accent){% else %}var(--surface2){% endif %};
+              color:{% if p==page %}#fff{% else %}var(--muted){% endif %}">{{ p }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+<div style="font-size:12px;color:var(--muted);text-align:right;margin-top:8px">
+  {{ total }} transações
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filtrar(param, val) {
+  const url = new URL(window.location);
+  url.searchParams.set(param, val);
+  url.searchParams.set('page', 1);
+  window.location = url;
+}
+
+// Correção de categoria via AJAX
+document.querySelectorAll('.cat-select').forEach(sel => {
+  sel.addEventListener('change', function() {
+    const tid = this.dataset.id;
+    const cat = this.value;
+    fetch(`/transacoes/${tid}/categoria`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoria: cat })
+    }).then(r => r.json()).then(d => {
+      if (d.ok) {
+        this.style.color = 'var(--green)';
+        setTimeout(() => this.style.color = '', 1500);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

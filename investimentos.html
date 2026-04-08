@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Diagnóstico · BRUDE{% endblock %}
+{% block topbar_title %}Diagnóstico Automático{% endblock %}
+{% block topbar_extra %}
+<select onchange="location='/diagnostico?mes='+this.value">
+  {% for m in meses_disp %}<option value="{{ m }}" {% if m==mes %}selected{% endif %}>{{ m }}</option>{% endfor %}
+  {% if not meses_disp %}<option value="{{ mes }}">{{ mes }}</option>{% endif %}
+</select>
+{% endblock %}
+
+{% block content %}
+{% set r = relatorio %}
+
+<!-- Score + Totais -->
+<div class="kpi-grid" style="margin-bottom:20px">
+  <div class="kpi {% if r.score >= 70 %}green{% elif r.score >= 50 %}amber{% else %}red{% endif %}">
+    <div class="kpi-label">Score Financeiro</div>
+    <div class="kpi-val">{{ r.score }}/100</div>
+    <div class="kpi-sub">{% if r.score >= 70 %}Saúde financeira boa{% elif r.score >= 50 %}Atenção necessária{% else %}Situação crítica{% endif %}</div>
+  </div>
+  <div class="kpi red">
+    <div class="kpi-label">Total Gastos</div>
+    <div class="kpi-val">{{ r.total_geral|brl }}</div>
+    <div class="kpi-sub">{{ mes }}</div>
+  </div>
+  <div class="kpi cyan">
+    <div class="kpi-label">Taxa de Poupança</div>
+    <div class="kpi-val">{{ r.taxa_poupanca }}%</div>
+    <div class="kpi-sub">{% if r.taxa_poupanca >= 20 %}Excelente{% elif r.taxa_poupanca >= 10 %}Adequada{% else %}Abaixo do ideal{% endif %}</div>
+  </div>
+  <div class="kpi amber">
+    <div class="kpi-label">Parcelas Prox. Mês</div>
+    <div class="kpi-val">{{ r.parcelas_mes_prox|brl }}</div>
+    <div class="kpi-sub">Comprometido automaticamente</div>
+  </div>
+</div>
+
+<!-- Alertas -->
+{% if r.alertas %}
+<div class="card">
+  <div class="card-title">🔴 Alertas — Agir Agora</div>
+  {% for alerta in r.alertas %}
+    <div class="alerta">{{ alerta }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Categorias -->
+<div class="card">
+  <div class="card-title">Análise por Categoria</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Categoria</th>
+          <th>Tipo</th>
+          <th style="text-align:right">Total</th>
+          <th style="text-align:right">Meta</th>
+          <th style="text-align:right">% Meta</th>
+          <th>Status</th>
+          <th>André</th>
+          <th>Bruna</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat, v in r.categorias %}
+        <tr>
+          <td style="font-weight:500;font-size:13px">{{ cat }}</td>
+          <td style="font-size:11px;color:var(--muted)">{{ v.tipo }}</td>
+          <td class="td-val" style="text-align:right;color:{% if v.status=='critico' %}var(--red){% elif v.status=='atencao' %}var(--amber){% else %}var(--green){% endif %}">
+            {{ v.total|brl }}
+          </td>
+          <td style="text-align:right;font-size:12px;color:var(--muted)">
+            {% if v.meta %}{{ v.meta|brl }}{% else %}—{% endif %}
+          </td>
+          <td style="text-align:right;font-size:12px">
+            {% if v.pct_meta %}{{ "%.0f"|format(v.pct_meta) }}%{% else %}—{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-{{ v.status }}">
+              {% if v.status=='ok' %}✓ OK{% elif v.status=='atencao' %}⚠ Atenção{% else %}✗ Acima{% endif %}
+            </span>
+          </td>
+          <td style="font-size:12px;color:#60a5fa">
+            {% if v.por_membro.get('André') %}{{ v.por_membro['André']|brl }}{% else %}—{% endif %}
+          </td>
+          <td style="font-size:12px;color:#f9a8d4">
+            {% if v.por_membro.get('Bruna') %}{{ v.por_membro['Bruna']|brl }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Potencial de economia -->
+{% set criticos = r.categorias | selectattr('1.status', 'equalto', 'critico') | list %}
+{% if criticos %}
+<div class="card">
+  <div class="card-title">💰 Potencial de Economia</div>
+  {% for cat, v in criticos %}
+  {% if v.meta %}
+  <div class="alerta alerta-ok">
+    <strong>{{ cat }}</strong>: reduzir de {{ v.total|brl }} para meta de {{ v.meta|brl }}
+    → economia de <strong>R$ {{ "%.0f"|format(v.total - v.meta) }}/mês</strong>
+    = R$ {{ "%.0f"|format((v.total - v.meta)*12) }}/ano
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}
